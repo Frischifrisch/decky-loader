@@ -41,7 +41,9 @@ class PluginBrowser:
         zip_file = ZipFile(zip)
         zip_file.extractall(self.plugin_path)
         plugin_dir = self.find_plugin_folder(name)
-        code_chown = call(["chown", "-R", get_user()+":"+get_user_group(), plugin_dir])
+        code_chown = call(
+            ["chown", "-R", f"{get_user()}:{get_user_group()}", plugin_dir]
+        )
         code_chmod = call(["chmod", "-R", "555", plugin_dir])
         if code_chown != 0 or code_chmod != 0:
             logger.error(f"chown/chmod exited with a non-zero exit code (chown: {code_chown}, chmod: {code_chmod})")
@@ -61,10 +63,10 @@ class PluginBrowser:
                         # create bin directory if needed.
                         rc=call(["chmod", "-R", "777", pluginBasePath])
                         if access(pluginBasePath, W_OK):
-                            
+
                             if not path.exists(pluginBinPath):
                                 mkdir(pluginBinPath)
-                            
+
                             if not access(pluginBinPath, W_OK):
                                 rc=call(["chmod", "-R", "777", pluginBinPath])
 
@@ -78,12 +80,19 @@ class PluginBrowser:
                                 rv = False
                                 raise Exception(f"Error Downloading Remote Binary {binName}@{binURL} with hash {binHash} to {path.join(pluginBinPath, binName)}")
 
-                        code_chown = call(["chown", "-R", get_user()+":"+get_user_group(), self.plugin_path])
+                        code_chown = call(
+                            [
+                                "chown",
+                                "-R",
+                                f"{get_user()}:{get_user_group()}",
+                                self.plugin_path,
+                            ]
+                        )
                         rc=call(["chmod", "-R", "555", pluginBasePath])
                     else:
                         rv = True
-                        logger.debug(f"No Remote Binaries to Download")
-                
+                        logger.debug("No Remote Binaries to Download")
+
         except Exception as e:
             rv = False
             logger.debug(str(e))
@@ -106,20 +115,20 @@ class PluginBrowser:
             self.loader.watcher.disabled = True
         tab = await get_gamepadui_tab()
         try:
-            logger.info("uninstalling " + name)
-            logger.info(" at dir " + self.find_plugin_folder(name))
-            logger.debug("unloading %s" % str(name))
+            logger.info(f"uninstalling {name}")
+            logger.info(f" at dir {self.find_plugin_folder(name)}")
+            logger.debug(f"unloading {str(name)}")
             await tab.evaluate_js(f"DeckyPluginLoader.unloadPlugin('{name}')")
             if self.plugins[name]:
                 self.plugins[name].stop()
                 del self.plugins[name]
-            logger.debug("removing files %s" % str(name))
+            logger.debug(f"removing files {str(name)}")
             rmtree(self.find_plugin_folder(name))
         except FileNotFoundError:
             logger.warning(f"Plugin {name} not installed, skipping uninstallation")
         except Exception as e:
             logger.error(f"Plugin {name} in {self.find_plugin_folder(name)} was not uninstalled")
-            logger.error(f"Error at %s", exc_info=e)
+            logger.error("Error at %s", exc_info=e)
         if self.loader.watcher:
             self.loader.watcher.disabled = False
 
@@ -149,8 +158,7 @@ class PluginBrowser:
                     except:
                         logger.error(f"Plugin {name} could not be uninstalled.")
                 logger.debug("Unzipping...")
-                ret = self._unzip_to_plugin_dir(res_zip, name, hash)
-                if ret:
+                if ret := self._unzip_to_plugin_dir(res_zip, name, hash):
                     plugin_dir = self.find_plugin_folder(name)
                     ret = await self._download_remote_binaries_for_plugin_with_name(plugin_dir)
                     if ret:
@@ -161,7 +169,7 @@ class PluginBrowser:
                         await sleep(1)
                         self.loader.import_plugin(path.join(plugin_dir, "main.py"), plugin_dir)
                     else:
-                        logger.fatal(f"Failed Downloading Remote Binaries")
+                        logger.fatal("Failed Downloading Remote Binaries")
                 else:
                     self.log.fatal(f"SHA-256 Mismatch!!!! {name} (Version: {version})")
                 if self.loader.watcher:

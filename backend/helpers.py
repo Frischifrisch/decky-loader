@@ -43,7 +43,7 @@ async def csrf_middleware(request, handler):
 def set_user():
     global user
     cmd = "who | awk '{print $1}' | sort | head -1"
-    while user == None:
+    while user is None:
         name = check_output(cmd, shell=True).decode().strip()
         if name not in [None, '']:
             user = name
@@ -52,7 +52,7 @@ def set_user():
 # Get the global user. get_user must be called first.
 def get_user() -> str:
     global user
-    if user == None:
+    if user is None:
         raise ValueError("helpers.get_user method called before user variable was set. Run helpers.set_user first.")
     return user
 
@@ -60,31 +60,31 @@ def get_user() -> str:
 def set_user_group() -> str:
     global group
     global user
-    if user == None:
+    if user is None:
         raise ValueError("helpers.set_user_dir method called before user variable was set. Run helpers.set_user first.")
-    if group == None:
+    if group is None:
         group = check_output(["id", "-g", "-n", user]).decode().strip()
 
 # Get the group of the global user. set_user_group must be called first.
 def get_user_group() -> str:
     global group
-    if group == None:
+    if group is None:
         raise ValueError("helpers.get_user_group method called before group variable was set. Run helpers.set_user_group first.")
     return group
 
 # Get the default home path unless a user is specified
 def get_home_path(username = None) -> str:
-    if username == None:
+    if username is None:
         raise ValueError("Username not defined, no home path can be found.")
     else:
-        return str("/home/"+username)
+        return str(f"/home/{username}")
 
 # Get the default homebrew path unless a user is specified
 def get_homebrew_path(home_path = None) -> str:
-    if home_path == None:
+    if home_path is None:
         raise ValueError("Home path not defined, homebrew dir cannot be determined.")
     else:
-        return str(home_path+"/homebrew")
+        return str(f"{home_path}/homebrew")
     # return str(home_path+"/homebrew")
 
 # Download Remote Binaries to local Plugin
@@ -97,13 +97,12 @@ async def download_remote_binary_to_path(url, binHash, path) -> bool:
                 if res.status == 200:
                     data = BytesIO(await res.read())
                     remoteHash = sha256(data.getbuffer()).hexdigest()
-                    if binHash == remoteHash:
-                        data.seek(0)
-                        with open(path, 'wb') as f:
-                            f.write(data.getbuffer())
-                            rv = True
-                    else:
+                    if binHash != remoteHash:
                         raise Exception(f"Fatal Error: Hash Mismatch for remote binary {path}@{url}")
+                    data.seek(0)
+                    with open(path, 'wb') as f:
+                        f.write(data.getbuffer())
+                        rv = True
                 else:
                     rv = False
     except:

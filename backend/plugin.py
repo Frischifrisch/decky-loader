@@ -68,16 +68,16 @@ class PluginWrapper:
             get_event_loop().create_task(self._setup_socket())
             get_event_loop().run_forever()
         except:
-            self.log.error("Failed to start " + self.name + "!\n" + format_exc())
+            self.log.error(f"Failed to start {self.name}" + "!\n" + format_exc())
             exit(0)
 
     async def _unload(self):
         try:
-            self.log.info("Attempting to unload " + self.name + "\n")
+            self.log.info(f"Attempting to unload {self.name}" + "\n")
             if hasattr(self.Plugin, "_unload"):
                 await self.Plugin._unload(self.Plugin)
         except:
-            self.log.error("Failed to unload " + self.name + "!\n" + format_exc())
+            self.log.error(f"Failed to unload {self.name}" + "!\n" + format_exc())
             exit(0)
 
     async def _setup_socket(self):
@@ -116,18 +116,17 @@ class PluginWrapper:
                 await writer.drain()
 
     async def _open_socket_if_not_exists(self):
-        if not self.reader:
-            retries = 0
-            while retries < 10:
-                try:
-                    self.reader, self.writer = await open_unix_connection(self.socket_addr, limit=BUFFER_LIMIT)
-                    return True
-                except:
-                    await sleep(2)
-                    retries += 1
-            return False
-        else:
+        if self.reader:
             return True
+        retries = 0
+        while retries < 10:
+            try:
+                self.reader, self.writer = await open_unix_connection(self.socket_addr, limit=BUFFER_LIMIT)
+                return True
+            except:
+                await sleep(2)
+                retries += 1
+        return False
 
     def start(self):
         if self.passive:

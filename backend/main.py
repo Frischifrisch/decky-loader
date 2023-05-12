@@ -36,17 +36,21 @@ set_user()
 set_user_group()
 USER = get_user()
 GROUP = get_user_group()
-HOME_PATH = "/home/"+USER
-HOMEBREW_PATH = HOME_PATH+"/homebrew"
+HOME_PATH = f"/home/{USER}"
+HOMEBREW_PATH = f"{HOME_PATH}/homebrew"
 CONFIG = {
-    "plugin_path": getenv("PLUGIN_PATH", HOMEBREW_PATH+"/plugins"),
+    "plugin_path": getenv("PLUGIN_PATH", f"{HOMEBREW_PATH}/plugins"),
     "chown_plugin_path": getenv("CHOWN_PLUGIN_PATH", "1") == "1",
     "server_host": getenv("SERVER_HOST", "127.0.0.1"),
     "server_port": int(getenv("SERVER_PORT", "1337")),
     "live_reload": getenv("LIVE_RELOAD", "1") == "1",
-    "log_level": {"CRITICAL": 50, "ERROR": 40, "WARNING": 30, "INFO": 20, "DEBUG": 10}[
-        getenv("LOG_LEVEL", "INFO")
-    ],
+    "log_level": {
+        "CRITICAL": 50,
+        "ERROR": 40,
+        "WARNING": 30,
+        "INFO": 20,
+        "DEBUG": 10,
+    }[getenv("LOG_LEVEL", "INFO")],
 }
 
 basicConfig(
@@ -57,7 +61,7 @@ basicConfig(
 logger = getLogger("Main")
 
 async def chown_plugin_dir(_):
-    code_chown = call(["chown", "-R", USER+":"+GROUP, CONFIG["plugin_path"]])
+    code_chown = call(["chown", "-R", f"{USER}:{GROUP}", CONFIG["plugin_path"]])
     code_chmod = call(["chmod", "-R", "555", CONFIG["plugin_path"]])
     if code_chown != 0 or code_chmod != 0:
         logger.error(f"chown/chmod exited with a non-zero exit code (chown: {code_chown}, chmod: {code_chmod})")
@@ -125,10 +129,8 @@ class PluginManager:
                     tab = await get_gamepadui_tab()
                 except client_exceptions.ClientConnectorError or client_exceptions.ServerDisconnectedError:
                     logger.debug("Couldn't connect to debugger, waiting 5 seconds.")
-                    pass
                 except ValueError:
                     logger.debug("Couldn't find GamepadUI tab, waiting 5 seconds")
-                    pass
                 if not tab:
                     await sleep(5)
             await tab.open_websocket()
@@ -156,14 +158,13 @@ class PluginManager:
                 if await tab.has_global_var("deckyHasLoaded", False):
                     tabs = await get_tabs()
                     for t in tabs:
-                        if t.title != "Steam" and t.title != "SP":
+                        if t.title not in ["Steam", "SP"]:
                             logger.debug("Closing tab: " + getattr(t, "title", "Untitled"))
                             await t.close()
                             await sleep(0.5)
             await tab.evaluate_js("try{if (window.deckyHasLoaded){setTimeout(() => location.reload(), 1000)}window.deckyHasLoaded = true;(async()=>{while(!window.SP_REACT){await new Promise(r => setTimeout(r, 10))};await import('http://localhost:1337/frontend/index.js')})();}catch(e){console.error(e)}", False, False, False)
         except:
             logger.info("Failed to inject JavaScript into tab\n" + format_exc())
-            pass
 
     def run(self):
         return run_app(self.web_app, host=CONFIG["server_host"], port=CONFIG["server_port"], loop=self.loop, access_log=None)
